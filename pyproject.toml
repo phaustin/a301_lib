@@ -1,0 +1,29 @@
+[build-system]
+requires = [
+    "setuptools >= 64",
+    "setuptools_scm[toml] >= 8"
+]
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = "a301_lib"
+description = "a301 code"
+authors = [
+  { name="Philip Austin", email="paustin@eoas.ubc.ca" },
+]
+dynamic = ["version"]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pyproj",
+    "rioxarray"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools_scm]
+version_file = "./_version.py"
+
+
+
