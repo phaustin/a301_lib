@@ -1,5 +1,5 @@
 """
-version 0.2, week 6
+utility code for ATSC 301
 """
 
 from pathlib import Path
