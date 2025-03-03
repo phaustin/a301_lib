@@ -1,6 +1,6 @@
-'''
+"""
 version 0.2, week 6
-'''
+"""
 
 from pathlib import Path
 from matplotlib import pyplot as plt
