@@ -1,17 +1,17 @@
 [build-system]
 requires = [
     "setuptools >= 64",
-    "setuptools_scm[toml] >= 8"
 ]
 build-backend = 'setuptools.build_meta'
 
 [project]
 name = "a301_lib"
-description = "a301 code"
+description = "a301 class code"
+license = "BSD-3-Clause)"
+version = "0.1"
 authors = [
   { name="Philip Austin", email="paustin@eoas.ubc.ca" },
 ]
-dynamic = ["version"]
 dependencies = [
     "matplotlib",
     "numpy",
@@ -22,8 +22,7 @@ dependencies = [
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools_scm]
-version_file = "./_version.py"
+
 
 
 
