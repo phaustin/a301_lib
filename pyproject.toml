@@ -8,7 +8,7 @@ build-backend = 'setuptools.build_meta'
 name = "a301_lib"
 description = "a301 class code"
 license = {file = "LICENSE"}
-version = "0.1"
+version = "0.2"
 authors = [
   { name="Philip Austin", email="paustin@eoas.ubc.ca" },
 ]

@@ -8,8 +8,9 @@ from matplotlib.colors import Normalize
 import numpy as np
 
 from pathlib import Path
+import pyproj
 from pyproj import Transformer, CRS
-import rioxarray
+import xarray as xr
 
 g=9.8  #m/s^2 don't worry about g(z) for this class
 Rd=287.  #kg/m^3
@@ -200,3 +201,112 @@ def radiance_invert(wavel, L):
     c2 = h * c / k
     Tbright = c2 / (wavel * np.log(c1 / (wavel ** 5.0 * L) + 1.0))
     return Tbright
+
+
+from pydantic import BaseModel
+
+class Row_col_offsets(BaseModel):
+    """
+    row/col offsets needed to define
+    rows and column ranges in a region
+    """
+    west: int
+    south: int
+    east: int
+    north: int
+
+class Clip_point(BaseModel):
+    """
+    a location within the clipped region 
+    in geodetic coordinates
+    """
+    lon: float
+    lat: float
+
+class Bounding_box(BaseModel):
+    """
+    bounding box for rioxarray.clip_box in map coordinates
+    """
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+
+class Cartopy_extent(BaseModel):
+    """
+    cartopy plotting extent in map coords
+    """
+    xmin: float
+    xmax: float
+    ymin: float
+    ymax: float
+
+
+def find_bounds(
+    scene_ds: xr.DataArray,
+    offsets: Row_col_offsets,
+    image_point: Clip_point,
+    scene_crs: pyproj.CRS | None = None ) -> Bounding_box: 
+    """
+    Given a point in x,y map coordinates and
+    a set of row, column offsets, return a
+    bounding box that can be used by rio.clip_box to clip
+    the image
+
+    Parameters
+    ----------
+    scene_ds: rioxarray DataArray
+    offsets: west, south, east, north
+    image_point: lon, lat for point in image
+    scene_crs: Optional -- point in scene, if missing use scene_ds.rio.crs
+
+    Returns
+    -------
+
+    bounds: west, south, east, north bounds for rio.clip_box
+    """ 
+    if scene_crs is None:
+        #
+        # turn the rasterio CRS into a pyproj.CRS
+        #
+        scene_crs = pyproj.CRS(scene_ds.rio.crs)
+    #
+    # step 1: find the image point in utm coords
+    # need to transform the latlon point to x,y utm zone 10
+    #
+    full_affine = scene_ds.rio.transform()
+    p_latlon = CRS.from_epsg(4326)
+    transform = Transformer.from_crs(p_latlon, scene_crs)
+    image_x, image_y = transform.transform(image_point.lat, image_point.lon)
+    #
+    # step 2: find the row and column of the image point
+    #
+    image_col, image_row = ~full_affine * (image_x, image_y)
+    image_col, image_row = int(image_col), int(image_row)
+    #
+    # step 3 find the top, bottom, left and right rows and columns
+    # given the specified offsets
+    #
+    col_left, col_right = (image_col + offsets.west, image_col + 
+                           offsets.east)
+    row_bot, row_top = image_row + offsets.south, image_row + offsets.north
+    row_max, col_max = scene_ds.shape
+    #
+    # step 4: sanity check to make sure we haven't gone outside the image
+    #
+    if (col_left < 0 or col_right > (col_max -1) or
+         row_top < 0 or row_bot > (row_max -1)):
+        raise ValueError((f"bounds error with "
+                          f"{(col_left, col_right, row_bot, row_top)=}"
+                          f"\n{scene_ds.shape=}"))
+    #
+    # step 5: find the x,y corners of the bounding box
+    #
+    ul_x, ul_y = full_affine * (col_left, row_top)
+    lr_x, lr_y = full_affine * (col_right, row_bot)
+    #
+    # step 6 create a new instance of the Bounding_box object and return it
+    #
+    bounds = Bounding_box(xmin=ul_x,ymin=lr_y,xmax=lr_x,ymax=ul_y)
+    return bounds
+    
